@@ -5,6 +5,15 @@ from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 
 
+DELETE_FAILED = 'delete failed'
+REVTAG_COLLISION = 'revtag collision'
+SAVE_FAILED = 'save failed'
+
+
+class DynamoDBItemException(Exception):
+    pass
+
+
 def item_factory(boss, item_class, dynamodb_item_dict):
     class Morph(object):
         def __init__(self, boss, item_class, dynamodb_item_dict):
@@ -22,17 +31,15 @@ class DynamoDBItem(object):
 
     def __init__(self, boss, **kwargs):
         self.__dict__.update(**kwargs)
+        self._boss = boss
         self._table = boss.GetTable(self)
 
     def Delete(self):
         kwargs = {'Key': self.GetKey()}
         resp = self._table.delete_item(**kwargs)
         if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
-            #~ TODO: the delete failed; what to do? raise an exception?
-            #~  return False? do nothing and let the calling
-            #~  method worry about checking and verifying it? (nah that
-            #~  would suck)
-            pass
+            print('Delete failed: %s' % resp['ResponseMetadata'])
+            raise DynamoDBItemException(DELETE_FAILED)
         return resp
 
     def GetItem(self):
@@ -67,18 +74,14 @@ class DynamoDBItem(object):
         try:
             resp = self._table.put_item(**kwargs)
             if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
-                #~ TODO: the save failed; what to do? raise an exception?
-                #~  return False? do nothing and let the calling
-                #~  method worry about checking and verifying it? (nah that
-                #~  would suck)
-                pass
+                print('Save failed: %s' % resp['ResponseMetadata'])
+                raise DynamoDBItemException(SAVE_FAILED)
             return resp
         except ClientError as ex:
             if ex.response['Error']['Code'] \
                                     == 'ConditionalCheckFailedException':
-                #~ TODO: the revtag check failed so someone else has already modified
-                #~  this item since we retrieved it. What to do?
-                print('Oops! Someone else already edited this item: %s' % str(kwargs['Item']))
+                print('Oops! Someone else already edited this item: %s' % kwargs['Item'])
+                raise DynamoDBItemException(REVTAG_COLLISION)
             raise
 
 
