@@ -8,9 +8,14 @@ from . import conf
 class DynamoDBBoss(object):
 
     def __init__(self, table_name_prefix=''):
-        self.session = boto3.Session()
-        self.dynamodb = self.session.resource(
-                        'dynamodb', conf.settings.DYNAMODB_BOSS_REGION)
+        self.session = boto3.Session(
+            aws_access_key_id = conf.settings[
+                                    'DYNAMODB_BOSS_AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key = conf.settings[
+                                    'DYNAMODB_BOSS_AWS_SECRET_ACCESS_KEY'],
+            region_name = conf.settings['DYNAMODB_BOSS_REGION']
+            )
+        self.dynamodb = self.session.resource('dynamodb')
         self.table_name_prefix = table_name_prefix
         self.tables = {}
 
