@@ -32,6 +32,7 @@ class DynamoDBBossPool(ResourcePool):
 
     def __init__(self, aws_access_key_id=None, aws_secret_access_key=None,
                                     region_name=None, table_name_prefix=''):
+        super().__init__()
         self.aws_access_key_id = aws_access_key_id \
                         or conf.settings.DYNAMODB_BOSS_AWS_ACCESS_KEY_ID
         self.aws_secret_access_key = aws_secret_access_key \
