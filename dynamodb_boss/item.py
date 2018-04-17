@@ -46,8 +46,9 @@ class DynamoDBItem(object):
     def item_dict(self):
         item_dict = dict(self.__dict__)
         # remove all non-dynamodb attributes (those that start with an
-        #   underscore) from the item_dict
-        for k in item_dict.keys():
+        #   underscore) from the item_dict; iterate a list() of the dict keys
+        #   because we are going to delete some of the keys from the dict
+        for k in list(item_dict.keys()):
             if k[0] == '_':
                 del item_dict[k]
         # hook for child classes to remove any other desired attributes
