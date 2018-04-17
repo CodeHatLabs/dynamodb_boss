@@ -31,24 +31,42 @@ class DynamoDBItem(object):
 
     def __init__(self, boss, **kwargs):
         self.__dict__.update(**kwargs)
+        # all non-dynamodb attributes should start with an underscore
         self._boss = boss
         self._table = boss.GetTable(self)
 
     def Delete(self):
-        kwargs = {'Key': self.GetKey()}
+        kwargs = {'Key': self.key}
         resp = self._table.delete_item(**kwargs)
         if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
             print('Delete failed: %s' % resp['ResponseMetadata'])
             raise DynamoDBItemException(DELETE_FAILED)
         return resp
 
-    def GetItem(self):
+    @property
+    def item_dict(self):
         item_dict = dict(self.__dict__)
-        del item_dict['_table']
-        self._GetItemPruneNonPersistentAttributes(item_dict)
+        # remove all non-dynamodb attributes (those that start with an
+        #   underscore) from the item_dict
+        for key in item_dict.keys():
+            if key[0] == '_':
+                del item_dict[key]
+        # hook for child classes to remove any other desired attributes
+        self._PruneNonPersistentAttributes(item_dict)
         return item_dict
 
-    def _GetItemPruneNonPersistentAttributes(self, item):
+    @property
+    def key(self):
+        if not hasattr(self, '_key'):
+            key = {
+                self.PARTITION_KEY_NAME: getattr(self, self.PARTITION_KEY_NAME)
+                }
+            if self.SORT_KEY_NAME:
+                key[self.SORT_KEY_NAME] = getattr(self, self.SORT_KEY_NAME)
+            self._key = key
+        return self.key
+
+    def _PruneNonPersistentAttributes(self, item):
         """
             Override this method for child classes that store non-persistent
                 or non-persistable attributes in the instance and need to
@@ -57,18 +75,10 @@ class DynamoDBItem(object):
         """
         pass
 
-    def GetKey(self):
-        result = {
-            self.PARTITION_KEY_NAME: getattr(self, self.PARTITION_KEY_NAME)
-            }
-        if self.SORT_KEY_NAME:
-            result[self.SORT_KEY_NAME] = getattr(self, self.SORT_KEY_NAME)
-        return result
-
     def Save(self):
         old_revtag = getattr(self, 'revtag', None)
         self.revtag = str(uuid4())
-        kwargs = {'Item': self.GetItem()}
+        kwargs = {'Item': self.item_dict}
         if old_revtag:
             kwargs['ConditionExpression'] = Attr('revtag').eq(old_revtag)
         try:
