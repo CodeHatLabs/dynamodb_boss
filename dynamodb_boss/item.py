@@ -36,8 +36,7 @@ class DynamoDBItem(object):
         self._table = boss.GetTable(self)
 
     def Delete(self):
-        kwargs = {'Key': self.key}
-        resp = self._table.delete_item(**kwargs)
+        resp = self._table.delete_item(Key=self.key)
         if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
             print('Delete failed: %s' % resp['ResponseMetadata'])
             raise DynamoDBItemException(DELETE_FAILED)
@@ -48,23 +47,21 @@ class DynamoDBItem(object):
         item_dict = dict(self.__dict__)
         # remove all non-dynamodb attributes (those that start with an
         #   underscore) from the item_dict
-        for key in item_dict.keys():
-            if key[0] == '_':
-                del item_dict[key]
+        for k in item_dict.keys():
+            if k[0] == '_':
+                del item_dict[k]
         # hook for child classes to remove any other desired attributes
         self._PruneNonPersistentAttributes(item_dict)
         return item_dict
 
     @property
     def key(self):
-        if not hasattr(self, '_key'):
-            key = {
-                self.PARTITION_KEY_NAME: getattr(self, self.PARTITION_KEY_NAME)
-                }
-            if self.SORT_KEY_NAME:
-                key[self.SORT_KEY_NAME] = getattr(self, self.SORT_KEY_NAME)
-            self._key = key
-        return self.key
+        key = {
+            self.PARTITION_KEY_NAME: getattr(self, self.PARTITION_KEY_NAME)
+            }
+        if self.SORT_KEY_NAME:
+            key[self.SORT_KEY_NAME] = getattr(self, self.SORT_KEY_NAME)
+        return key
 
     def _PruneNonPersistentAttributes(self, item):
         """
