@@ -5,8 +5,8 @@ from pygwanda.resource_pool import ResourcePool
 
 class DynamoDBBoss(object):
 
-    def __init__(self, aws_access_key_id, aws_secret_access_key, region_name,
-                                                        table_name_prefix=''):
+    def __init__(self, aws_access_key_id, aws_secret_access_key,
+                                region_name, table_name_prefix=''):
         self.session = boto3.Session(
             aws_access_key_id = aws_access_key_id,
             aws_secret_access_key = aws_secret_access_key,
@@ -29,7 +29,7 @@ class DynamoDBBoss(object):
 class DynamoDBBossPool(ResourcePool):
 
     def __init__(self, aws_access_key_id, aws_secret_access_key,
-                                region_name, table_name_prefix):
+                                region_name, table_name_prefix=''):
         super().__init__()
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
