@@ -2,8 +2,6 @@ import boto3
 
 from pygwanda.resource_pool import ResourcePool
 
-from . import conf
-
 
 class DynamoDBBoss(object):
 
@@ -30,16 +28,13 @@ class DynamoDBBoss(object):
 
 class DynamoDBBossPool(ResourcePool):
 
-    def __init__(self, aws_access_key_id=None, aws_secret_access_key=None,
-                                    region_name=None, table_name_prefix=''):
+    def __init__(self, aws_access_key_id, aws_secret_access_key,
+                                region_name, table_name_prefix):
         super().__init__()
-        self.aws_access_key_id = aws_access_key_id \
-                        or conf.settings.DYNAMODB_BOSS_AWS_ACCESS_KEY_ID
-        self.aws_secret_access_key = aws_secret_access_key \
-                        or conf.settings.DYNAMODB_BOSS_AWS_SECRET_ACCESS_KEY
-        self.region_name = region_name or conf.settings.DYNAMODB_BOSS_REGION
-        self.table_name_prefix = table_name_prefix \
-                        or conf.settings.DYNAMODB_BOSS_TABLE_NAME_PREFIX
+        self.aws_access_key_id = aws_access_key_id
+        self.aws_secret_access_key = aws_secret_access_key
+        self.region_name = region_name
+        self.table_name_prefix = table_name_prefix
 
     def _CreateNewResource(self):
         return DynamoDBBoss(
@@ -48,8 +43,5 @@ class DynamoDBBossPool(ResourcePool):
             self.region_name,
             self.table_name_prefix
             )
-
-
-dynamodb_boss_pool = DynamoDBBossPool()
 
 
