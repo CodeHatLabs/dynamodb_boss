@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 import boto3
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import And, Attr, Key
 from botocore.exceptions import ClientError
 
 
@@ -12,15 +12,6 @@ SAVE_FAILED = 'save failed'
 
 class DynamoDBItemException(Exception):
     pass
-
-
-def item_factory(boss, item_class, dynamodb_item_dict):
-    class Morph(object):
-        def __init__(self, boss, item_class, dynamodb_item_dict):
-            self.__class__ = item_class
-            self.__dict__.update(dynamodb_item_dict)
-            self._table = boss.GetTable(self)
-    return Morph(boss, item_class, dynamodb_item_dict)
 
 
 class DynamoDBItem(object):

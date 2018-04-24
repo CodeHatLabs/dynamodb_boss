@@ -1,0 +1,14 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+boto3 = "*"
+pygwanda = { git = 'https://github.com/CodeHatLabs/pygwanda.git', ref = 'master', editable = true }
+
+[dev-packages]
+pytest = "*"
+
+[requires]
+python_version = "3.6"

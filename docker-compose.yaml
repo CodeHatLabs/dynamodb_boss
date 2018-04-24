@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/opt
+    environment:
+      - DYNAMODB_BOSS_AWS_ACCESS_KEY_ID=$DYNAMODB_BOSS_AWS_ACCESS_KEY_ID
+      - DYNAMODB_BOSS_AWS_SECRET_ACCESS_KEY=$DYNAMODB_BOSS_AWS_SECRET_ACCESS_KEY
+      - DYNAMODB_BOSS_REGION=$DYNAMODB_BOSS_AWS_REGION
+      - DYNAMODB_BOSS_TABLE_NAME_PREFIX=dynamodb-boss-test
+    command: bash ./run-test.sh
