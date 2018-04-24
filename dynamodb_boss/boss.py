@@ -3,15 +3,6 @@ import boto3
 from pygwanda.resource_pool import ResourcePool
 
 
-def item_factory(boss, item_class, dynamodb_item_dict):
-    class Morph(object):
-        def __init__(self, boss, item_class, dynamodb_item_dict):
-            self.__class__ = item_class
-            self.__dict__.update(dynamodb_item_dict)
-            self._table = boss.GetTable(self)
-    return Morph(boss, item_class, dynamodb_item_dict)
-
-
 class DynamoDBBoss(object):
 
     def __init__(self, aws_access_key_id, aws_secret_access_key,
@@ -32,7 +23,7 @@ class DynamoDBBoss(object):
             key[table_class.SORT_KEY_NAME] = sort
         resp = tbl.get_item(Key=key)
         item = resp.get('Item')
-        return item_factory(self, table_class, item) if item else None
+        return self.item_factory(table_class, item) if item else None
 
     def GetTable(self, name_or_class):
         table_name = name_or_class \
@@ -42,6 +33,15 @@ class DynamoDBBoss(object):
             self.tables[table_name] = self.dynamodb.Table('%s-%s' % (
                                         self.table_name_prefix, table_name))
         return self.tables[table_name]
+
+    def item_factory(self, item_class, dynamodb_item_dict):
+        class Morph(object):
+            def __init__(self, boss, item_class, dynamodb_item_dict):
+                self.__class__ = item_class
+                self.__dict__.update(dynamodb_item_dict)
+                self._boss = boss
+                self._table = boss.GetTable(self)
+        return Morph(self, item_class, dynamodb_item_dict)
 
 
 class DynamoDBBossPool(ResourcePool):
