@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 import boto3
-from boto3.dynamodb.conditions import And, Attr, Key
+from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 
 
