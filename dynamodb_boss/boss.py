@@ -16,14 +16,14 @@ class DynamoDBBoss(object):
         self.table_name_prefix = table_name_prefix
         self.tables = {}
 
-    def GetItem(self, table_class, pk, sort=None):
-        tbl = self.GetTable(table_class)
-        key = {table_class.PARTITION_KEY_NAME: pk}
-        if table_class.SORT_KEY_NAME:
-            key[table_class.SORT_KEY_NAME] = sort
+    def GetItem(self, item_class, pk, sort=None):
+        tbl = self.GetTable(item_class)
+        key = {item_class.PARTITION_KEY_NAME: pk}
+        if item_class.SORT_KEY_NAME:
+            key[item_class.SORT_KEY_NAME] = sort
         resp = tbl.get_item(Key=key)
         item = resp.get('Item')
-        return self.item_factory(table_class, item) if item else None
+        return self.item_factory(item_class, item) if item else None
 
     def GetTable(self, name_or_class):
         table_name = name_or_class \
