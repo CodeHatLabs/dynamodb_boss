@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 
 import boto3
@@ -29,7 +30,7 @@ class DynamoDBItem(object):
     def Delete(self):
         resp = self._table.delete_item(Key=self.key)
         if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
-            print('Delete failed: %s' % resp['ResponseMetadata'])
+            logging.error('Delete failed: %s' % resp['ResponseMetadata'])
             raise DynamoDBItemException(DELETE_FAILED)
         return resp
 
@@ -67,19 +68,26 @@ class DynamoDBItem(object):
     def Save(self):
         old_revtag = getattr(self, 'revtag', None)
         self.revtag = str(uuid4())
-        kwargs = {'Item': self.item_dict}
-        if old_revtag:
-            kwargs['ConditionExpression'] = Attr('revtag').eq(old_revtag)
+        kwargs = {
+            'Item': self.item_dict,
+            'ConditionExpression': Attr('revtag').eq(old_revtag) \
+                if old_revtag \
+                else Attr('revtag').not_exists()
+            }
         try:
             resp = self._table.put_item(**kwargs)
             if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
-                print('Save failed: %s' % resp['ResponseMetadata'])
+                logging.error('Save failed: %s' % resp['ResponseMetadata'])
                 raise DynamoDBItemException(SAVE_FAILED)
             return resp
         except ClientError as ex:
             if ex.response['Error']['Code'] \
                                     == 'ConditionalCheckFailedException':
-                print('Oops! Someone else already edited this item: %s' % kwargs['Item'])
+                args = (self.TABLE_NAME, kwargs['Item'])
+                if old_revtag:
+                    logging.warning('update revtag collision on %s: %s' % args)
+                else:
+                    logging.error('insert key collision on %s: %s' % args)
                 raise DynamoDBItemException(REVTAG_COLLISION)
             raise
 

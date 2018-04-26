@@ -6,7 +6,7 @@ from uuid import uuid4
 from pygwanda.helpers import *
 
 from dynamodb_boss.boss import DynamoDBBossPool
-from dynamodb_boss.item import DynamoDBItem
+from dynamodb_boss.item import DynamoDBItem, DynamoDBItemException
 
 
 pool = DynamoDBBossPool(
@@ -62,8 +62,18 @@ class TestItem:
                 assert _pk2.whatever == pk1.whatever
                 assert _pk2.whatever != _pk1.whatever
                 assert _pk2.revtag != _pk1.revtag
+                # test creating new item with duplcate key
+                pk2 = ItemPk(boss, 10, UNAMBIGUOUS_UPPER)
+                pk2.partition_key = pk1.partition_key
+                got_exception = False
+                try:
+                    pk2.Save()
+                except DynamoDBItemException as ex:
+                    got_exception = True
+                assert got_exception
             finally:
                 pk1.Delete()
+                
             # test table 'pksort'
             pks1 = ItemPkSort(boss, 10, UNAMBIGUOUS_UPPER)
             pks1.Save()
@@ -82,6 +92,16 @@ class TestItem:
                 assert _pks2.whatever == pks1.whatever
                 assert _pks2.whatever != _pks1.whatever
                 assert _pks2.revtag != _pks1.revtag
+                # test creating new item with duplcate key
+                pks2 = ItemPkSort(boss, 10, UNAMBIGUOUS_UPPER)
+                pks2.partition_key = pks1.partition_key
+                pks2.sort_key = pks1.sort_key
+                got_exception = False
+                try:
+                    pks2.Save()
+                except DynamoDBItemException as ex:
+                    got_exception = True
+                assert got_exception
             finally:
                 pks1.Delete()
         finally:
