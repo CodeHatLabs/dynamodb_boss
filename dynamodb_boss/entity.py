@@ -72,7 +72,10 @@ def _MakeItems(boss, item_dict_list, sort_key_lambda=None, reverse=False):
 def GetItems(boss, item_base_class, key_attr, key, range_attr=None,
             range_item_class_name=None, sort_key_lambda=None, reverse=False):
     tbl = boss.GetTable(item_base_class)
-    kwargs = {'index_name': item_base_class.GetIndexName(key_attr, range_attr)}
+    kwargs = {
+        'index_name': item_base_class.GetIndexName(key_attr, range_attr),
+        'reverse': reverse
+        }
     if range_attr and range_item_class_name:
         kwargs['range_attr'] = range_attr
         kwargs['op'] = 'begins_with'

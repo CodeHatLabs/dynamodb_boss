@@ -7,6 +7,7 @@ from uuid import uuid4
 from pygwanda.helpers import *
 
 from dynamodb_boss.boss import DynamoDBBossPool
+from dynamodb_boss.helpers import EZQuery
 from dynamodb_boss.item import DynamoDBItem, DynamoDBItemException
 
 
@@ -39,10 +40,10 @@ class ItemPkSort(ItemPk):
     SORT_KEY_NAME = 'sort_key'
     TABLE_NAME = 'pksort'
 
-    def __init__(self, boss, whatever_length=10,
+    def __init__(self, boss, sort_key=None, whatever_length=10,
                     whatever_characters=UNAMBIGUOUS_ASCII):
         super().__init__(boss, whatever_length, whatever_characters)
-        self.sort_key = str(uuid4())
+        self.sort_key = sort_key or str(uuid4())
 
 
 class TestItem:
@@ -79,7 +80,7 @@ class TestItem:
                 pk1.Delete()
                 
             # test table 'pksort'
-            pks1 = ItemPkSort(boss, 10, UNAMBIGUOUS_UPPER)
+            pks1 = ItemPkSort(boss)
             pks1.Save()
             try:
                 _pks1 = boss.GetItem(ItemPkSort, pks1.partition_key, pks1.sort_key)
@@ -97,7 +98,7 @@ class TestItem:
                 assert _pks2.whatever != _pks1.whatever
                 assert _pks2.revtag != _pks1.revtag
                 # test creating new item with duplcate key
-                pks2 = ItemPkSort(boss, 10, UNAMBIGUOUS_UPPER)
+                pks2 = ItemPkSort(boss)
                 pks2.partition_key = pks1.partition_key
                 pks2.sort_key = pks1.sort_key
                 got_exception = False
@@ -108,6 +109,27 @@ class TestItem:
                 assert got_exception
             finally:
                 pks1.Delete()
+            pks1 = ItemPkSort(boss, 'XYZZY')
+            pks1.Save()
+            pks2 = ItemPkSort(boss, 'CBAAB')
+            pks2.partition_key = pks1.partition_key
+            pks2.Save()
+            pks3 = ItemPkSort(boss, 'MNOON')
+            pks3.partition_key = pks1.partition_key
+            pks3.Save()
+            try:
+                items = EZQuery(pks1._table, 'partition_key', pks1.partition_key)['Items']
+                assert len(items) == 3
+                assert items[0]['sort_key'] < items[1]['sort_key']
+                assert items[1]['sort_key'] < items[2]['sort_key']
+                items = EZQuery(pks1._table, 'partition_key', pks1.partition_key, reverse=True)['Items']
+                assert len(items) == 3
+                assert items[0]['sort_key'] > items[1]['sort_key']
+                assert items[1]['sort_key'] > items[2]['sort_key']
+            finally:
+                pks1.Delete()
+                pks2.Delete()
+                pks3.Delete()
         finally:
             pool.Release(boss)
 
