@@ -1,3 +1,4 @@
+import json
 import logging
 from uuid import uuid4
 
@@ -6,9 +7,10 @@ from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 
 
-DELETE_FAILED = 'delete failed'
-REVTAG_COLLISION = 'revtag collision'
-SAVE_FAILED = 'save failed'
+DELETE_FAIL = 'delete fail'
+INSERT_COLLISION = 'insert collision'
+SAVE_FAIL = 'save fail'
+UPDATE_COLLISION = 'update collision'
 
 
 class DynamoDBItemException(Exception):
@@ -30,8 +32,10 @@ class DynamoDBItem(object):
     def Delete(self):
         resp = self._table.delete_item(Key=self.key)
         if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
-            logging.error('Delete failed: %s' % resp['ResponseMetadata'])
-            raise DynamoDBItemException(DELETE_FAILED)
+            log = logging.getLogger('DynamoDBItem.Delete')
+            dat = {'resp': resp, 'table': self.TABLE_NAME, 'key': self.key}
+            log.error('%s: %s' % (DELETE_FAIL, json.dumps(dat)))
+            raise DynamoDBItemException(DELETE_FAIL)
         return resp
 
     @property
@@ -49,19 +53,17 @@ class DynamoDBItem(object):
 
     @property
     def key(self):
-        key = {
-            self.PARTITION_KEY_NAME: getattr(self, self.PARTITION_KEY_NAME)
-            }
+        key = {self.PARTITION_KEY_NAME: getattr(self, self.PARTITION_KEY_NAME)}
         if self.SORT_KEY_NAME:
             key[self.SORT_KEY_NAME] = getattr(self, self.SORT_KEY_NAME)
         return key
 
     def _PruneNonPersistentAttributes(self, item):
         """
-            Override this method for child classes that store non-persistent
-                or non-persistable attributes in the instance and need to
-                remove them from the item dict before storing the item in
-                DynamoDB.
+        Override this method for child classes that store non-persistent
+            or non-persistable attributes in the instance and need to
+            remove them from the item dict before storing the item in
+            DynamoDB.
         """
         pass
 
@@ -77,18 +79,24 @@ class DynamoDBItem(object):
         try:
             resp = self._table.put_item(**kwargs)
             if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
-                logging.error('Save failed: %s' % resp['ResponseMetadata'])
-                raise DynamoDBItemException(SAVE_FAILED)
+                log = logging.getLogger('DynamoDBItem.Save')
+                dat = {'resp': resp, 'table': self.TABLE_NAME,
+                                        'item': kwargs['Item']}
+                log.error('%s: %s' % (SAVE_FAIL, json.dumps(dat)))
+                raise DynamoDBItemException(SAVE_FAIL)
             return resp
         except ClientError as ex:
             if ex.response['Error']['Code'] \
                                     == 'ConditionalCheckFailedException':
-                args = (self.TABLE_NAME, kwargs['Item'])
+                log = logging.getLogger('DynamoDBItem.Save')
+                dat = {'table': self.TABLE_NAME, 'item': kwargs['Item']}
+                jdat = json.dumps(dat)
                 if old_revtag:
-                    logging.warning('update revtag collision on %s: %s' % args)
+                    log.warning('%s: %s' % (UPDATE_COLLISION, jdat))
+                    raise DynamoDBItemException(UPDATE_COLLISION)
                 else:
-                    logging.error('insert key collision on %s: %s' % args)
-                raise DynamoDBItemException(REVTAG_COLLISION)
+                    log.error('%s: %s' % (INSERT_COLLISION, jdat))
+                    raise DynamoDBItemException(INSERT_COLLISION)
             raise
 
 

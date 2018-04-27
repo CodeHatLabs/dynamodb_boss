@@ -1,3 +1,4 @@
+import logging
 from os import environ
 import pytest
 from random import randint
@@ -7,6 +8,9 @@ from pygwanda.helpers import *
 
 from dynamodb_boss.boss import DynamoDBBossPool
 from dynamodb_boss.item import DynamoDBItem, DynamoDBItemException
+
+
+logging.basicConfig(level=logging.WARN)
 
 
 pool = DynamoDBBossPool(
