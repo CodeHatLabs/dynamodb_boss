@@ -83,7 +83,7 @@ class TestItem:
             pk3.Save()
                 
             # test table 'pksort'
-            pks1 = ItemPkSort(boss)
+            pks1 = ItemPkSort(boss, 'AAAAA')
             pks1.Save()
             try:
                 _pks1 = boss.GetItem(ItemPkSort, pks1.partition_key, pks1.sort_key)
@@ -114,17 +114,24 @@ class TestItem:
                 pks1.Delete()
             pks1 = ItemPkSort(boss, 'XYZZY')
             pks1.Save()
-            pks2 = ItemPkSort(boss, 'CBAAB')
+            pks2 = ItemPkSort(boss, 'CBAAB', ttl_seconds=None)
             pks2.partition_key = pks1.partition_key
             pks2.Save()
-            pks3 = ItemPkSort(boss, 'MNOON')
+            pks3 = ItemPkSort(boss, 'MNOON', ttl_seconds=0)
             pks3.partition_key = pks1.partition_key
             pks3.Save()
+            assert hasattr(pks3, 'ttl_expires')
             try:
                 items = EZQuery(pks1._table, 'partition_key', pks1.partition_key)['Items']
                 assert len(items) == 3
                 assert items[0]['sort_key'] < items[1]['sort_key']
                 assert items[1]['sort_key'] < items[2]['sort_key']
+                assert 'ttl_seconds' not in items[0]
+                assert 'ttl_seconds' not in items[1]
+                assert 'ttl_seconds' not in items[2]
+                assert 'ttl_expires' not in items[0]
+                assert 'ttl_expires' in items[1]
+                assert 'ttl_expires' not in items[2]
                 items = EZQuery(pks1._table, 'partition_key', pks1.partition_key, reverse=True)['Items']
                 assert len(items) == 3
                 assert items[0]['sort_key'] > items[1]['sort_key']
