@@ -28,8 +28,8 @@ class ItemPk(DynamoDBItem):
     TABLE_NAME = 'pk'
 
     def __init__(self, boss, whatever_length=10,
-                    whatever_characters=UNAMBIGUOUS_ASCII):
-        super().__init__(boss)
+                    whatever_characters=UNAMBIGUOUS_ASCII, **kwargs):
+        super().__init__(boss, **kwargs)
         self.partition_key = str(uuid4())
         self.whatever = random_unambiguous_string(whatever_length,
                                             whatever_characters)
@@ -41,8 +41,8 @@ class ItemPkSort(ItemPk):
     TABLE_NAME = 'pksort'
 
     def __init__(self, boss, sort_key=None, whatever_length=10,
-                    whatever_characters=UNAMBIGUOUS_ASCII):
-        super().__init__(boss, whatever_length, whatever_characters)
+                    whatever_characters=UNAMBIGUOUS_ASCII, **kwargs):
+        super().__init__(boss, whatever_length, whatever_characters, **kwargs)
         self.sort_key = sort_key or str(uuid4())
 
 
@@ -52,7 +52,7 @@ class TestItem:
         boss = pool.Get()
         try:
             # test table 'pk'
-            pk1 = ItemPk(boss, 10, UNAMBIGUOUS_UPPER)
+            pk1 = ItemPk(boss)
             pk1.Save()
             try:
                 _pk1 = boss.GetItem(ItemPk, pk1.partition_key)
@@ -78,6 +78,9 @@ class TestItem:
                 assert got_exception
             finally:
                 pk1.Delete()
+            # leave one in the table to test the ttl
+            pk3 = ItemPk(boss, ttl_seconds=600)
+            pk3.Save()
                 
             # test table 'pksort'
             pks1 = ItemPkSort(boss)
@@ -130,6 +133,9 @@ class TestItem:
                 pks1.Delete()
                 pks2.Delete()
                 pks3.Delete()
+            # leave one in the table to test the ttl
+            pks4 = ItemPkSort(boss, 'HOWLONG', ttl_seconds=600)
+            pks4.Save()
         finally:
             pool.Release(boss)
 
