@@ -1,5 +1,6 @@
 import json
 import logging
+from time import time as now
 from uuid import uuid4
 
 import boto3
@@ -22,8 +23,12 @@ class DynamoDBItem(object):
     PARTITION_KEY_NAME = ''
     SORT_KEY_NAME = ''
     TABLE_NAME = ''
+    TTL_ATTR_NAME = 'ttl_expires'
 
     def __init__(self, boss, **kwargs):
+        if 'ttl_seconds' in kwargs:
+            setattr(self, self.TTL_ATTR_NAME, int(now() + kwargs['ttl_seconds']))
+            del kwargs['ttl_seconds']
         self.__dict__.update(**kwargs)
         # all non-dynamodb attributes should start with an underscore
         self._boss = boss
