@@ -26,7 +26,8 @@ class DynamoDBItem(object):
     TTL_ATTR_NAME = 'ttl_expires'
 
     def __init__(self, boss, **kwargs):
-        if 'ttl_seconds' in kwargs:
+        # explicity test for None, as zero is a valid value
+        if kwargs.get('ttl_seconds') is not None:
             setattr(self, self.TTL_ATTR_NAME, int(now() + kwargs['ttl_seconds']))
             del kwargs['ttl_seconds']
         self.__dict__.update(**kwargs)
