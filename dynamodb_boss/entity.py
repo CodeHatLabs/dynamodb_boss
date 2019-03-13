@@ -80,8 +80,8 @@ def GetItems(boss, item_base_class, key_attr, key, range_attr=None,
         kwargs['range_attr'] = range_attr
         kwargs['op'] = 'begins_with'
         kwargs['range'] = '%s:' % range_item_class_name
-    resp = EZQuery(tbl, key_attr, key, **kwargs)
-    return _MakeItems(boss, resp['Items'], sort_key_lambda, reverse)
+    items = EZQuery(tbl, key_attr, key, **kwargs)
+    return _MakeItems(boss, items, sort_key_lambda, reverse)
 
 
 def GetOwnedItems(boss, item_base_class, owner_key,
