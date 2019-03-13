@@ -13,6 +13,14 @@ def EZQuery(tbl, key_attr, key, index_name=None,
     kwargs = {'KeyConditionExpression': kce, 'ScanIndexForward': not reverse}
     if index_name:
         kwargs['IndexName'] = index_name
-    return tbl.query(**kwargs)
+    items = []
+    while True:
+        result = tbl.query(**kwargs)
+        items += result['Items']
+        if not 'LastEvaluatedKey' in result:
+            break
+        kwargs['ExclusiveStartKey'] = result['LastEvaluatedKey']
+    return items
+        
 
 
